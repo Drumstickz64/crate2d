@@ -1,7 +1,8 @@
-use crate::math::{Circle, Rect};
+use crate::primitive::{Circle, Rect};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Collider2D {
     Circle(Circle),
-    Rect(Rect),
+    Aabb(Rect),
+    Obb { rect: Rect, rotation: f32 },
 }
