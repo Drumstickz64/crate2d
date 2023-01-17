@@ -10,4 +10,4 @@ approx = "0.5.1"
 glam = "0.22.0"
 
 [dev-dependencies]
-macroquad = { version = "0.3.25", no-default-features = true }
+macroquad = { version = "0.3.25", default-features = false }

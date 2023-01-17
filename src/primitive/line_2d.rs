@@ -10,4 +10,8 @@ impl Line2D {
     pub fn new(start: Vec2, end: Vec2) -> Self {
         Self { start, end }
     }
+
+    pub fn to_vec2(self) -> Vec2 {
+        self.end - self.start
+    }
 }
