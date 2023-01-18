@@ -1,5 +1,5 @@
 mod transform;
-mod vec2_ex;
+mod vec2_ext;
 
 pub use transform::Transform;
-pub use vec2_ex::Vec2Ex;
+pub use vec2_ext::Vec2Ext;

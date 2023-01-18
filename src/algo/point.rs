@@ -2,7 +2,7 @@ use approx::abs_diff_eq;
 use glam::Vec2;
 
 use crate::{
-    math::Vec2Ex,
+    math::Vec2Ext,
     primitive::{Circle, Line2D, Rect},
 };
 
@@ -37,6 +37,8 @@ pub fn is_point_in_obb(point: Vec2, rect: Rect, rotation: f32) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::f32::consts::PI;
+
     use super::*;
 
     #[test]
@@ -80,7 +82,7 @@ mod tests {
         let rotation = 0.0;
         assert!(is_point_in_obb(point, rect, rotation));
 
-        let rotation = 45.0;
+        let rotation = PI / 4.0;
         assert!(!is_point_in_obb(point, rect, rotation));
 
         let rotation = 0.0;

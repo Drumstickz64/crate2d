@@ -1,4 +1,4 @@
-mod algo;
+pub mod algo;
 mod collider_2d;
 mod math;
 pub mod primitive;

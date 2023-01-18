@@ -7,7 +7,7 @@ pub struct Rect {
 }
 
 impl Rect {
-    pub fn new(min: Vec2, max: Vec2) -> Self {
+    pub const fn new(min: Vec2, max: Vec2) -> Self {
         Self { min, max }
     }
 
@@ -19,7 +19,7 @@ impl Rect {
         self.min + (self.size() / 2.0)
     }
 
-    pub fn get_vertices(self, rotation: f32) -> [Vec2; 4] {
+    pub fn get_vertices(self, _rotation: f32) -> [Vec2; 4] {
         let vertices = [
             Vec2::new(self.min.x, self.min.y),
             Vec2::new(self.min.x, self.max.y),

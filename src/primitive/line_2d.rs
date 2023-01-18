@@ -14,4 +14,16 @@ impl Line2D {
     pub fn to_vec2(self) -> Vec2 {
         self.end - self.start
     }
+
+    pub fn direction(self) -> Vec2 {
+        (self.end - self.start).normalize_or_zero()
+    }
+
+    pub fn length_squared(&self) -> f32 {
+        self.end.distance_squared(self.start)
+    }
+
+    pub fn length(&self) -> f32 {
+        self.end.distance(self.start)
+    }
 }

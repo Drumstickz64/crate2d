@@ -7,7 +7,7 @@ pub struct Circle {
 }
 
 impl Circle {
-    pub fn new(center: Vec2, radius: f32) -> Self {
+    pub const fn new(center: Vec2, radius: f32) -> Self {
         Self { center, radius }
     }
 }
