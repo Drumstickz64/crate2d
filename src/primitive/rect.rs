@@ -15,8 +15,12 @@ impl Rect {
         self.max - self.min
     }
 
+    pub fn half_size(self) -> Vec2 {
+        self.size() / 2.0
+    }
+
     pub fn center(self) -> Vec2 {
-        self.min + (self.size() / 2.0)
+        self.min + self.half_size()
     }
 
     pub fn get_vertices(self, _rotation: f32) -> [Vec2; 4] {

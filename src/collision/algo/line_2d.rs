@@ -1,7 +1,7 @@
 use glam::Vec2;
 
 use crate::{
-    math::Vec2Ext,
+    math::{div_or_zero, Vec2Ext},
     primitive::{Circle, Line2D, Rect},
 };
 
@@ -24,14 +24,6 @@ pub fn is_line_2d_intersecting_aabb(line: Line2D, rect: Rect) -> bool {
         return true;
     }
 
-    let div_or_zero = |x: f32, y: f32| {
-        let result = x / y;
-        if result.is_finite() {
-            result
-        } else {
-            0.0
-        }
-    };
     let start_to_max = rect.max - line.start;
     let start_to_min = rect.min - line.start;
     let line_direction = line.direction();

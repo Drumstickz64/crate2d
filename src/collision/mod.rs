@@ -1,3 +1,5 @@
+pub mod algo;
+
 use crate::primitive::{Circle, Rect};
 
 #[derive(Debug, Clone, PartialEq)]
