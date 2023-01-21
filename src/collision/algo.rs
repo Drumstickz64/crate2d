@@ -35,7 +35,7 @@ pub fn is_point_in_obb(point: Vec2, rect: Rect, rotation: f32) -> bool {
     is_point_in_aabb(rotated_point, rect)
 }
 
-pub fn is_line_2d_intersecting_circle(line: Line2D, circle: Circle) -> bool {
+pub fn line_2d_and_circle(line: Line2D, circle: Circle) -> bool {
     if is_point_in_circle(line.start, circle) || is_point_in_circle(line.end, circle) {
         return true;
     }
@@ -47,7 +47,7 @@ pub fn is_line_2d_intersecting_circle(line: Line2D, circle: Circle) -> bool {
     is_point_in_circle(closest_point, circle)
 }
 
-pub fn is_line_2d_intersecting_aabb(line: Line2D, rect: Rect) -> bool {
+pub fn line_2d_and_aabb(line: Line2D, rect: Rect) -> bool {
     if is_point_in_aabb(line.start, rect) || is_point_in_aabb(line.end, rect) {
         return true;
     }
@@ -71,13 +71,13 @@ pub fn is_line_2d_intersecting_aabb(line: Line2D, rect: Rect) -> bool {
     t > 0.0 && t * t < line.length_squared()
 }
 
-pub fn is_line_2d_intersecting_obb(line: Line2D, rect: Rect, rotation: f32) -> bool {
+pub fn line_2d_and_obb(line: Line2D, rect: Rect, rotation: f32) -> bool {
     let rotation_vec = Vec2::from_angle(-rotation);
     let rect_center = rect.center();
     let rotated_start = rotation_vec.rotate_around_point(line.start, rect_center);
     let rotated_end = rotation_vec.rotate_around_point(line.end, rect_center);
     let rotated_line = Line2D::new(rotated_start, rotated_end);
-    is_line_2d_intersecting_aabb(rotated_line, rect)
+    line_2d_and_aabb(rotated_line, rect)
 }
 
 pub fn raycast(ray: Ray2D, collider: Collider2D) -> Option<RaycastResult2D> {
@@ -189,6 +189,43 @@ fn raycast_obb(ray: Ray2D, rect: Rect, rotation: f32) -> Option<RaycastResult2D>
     Some(RaycastResult2D { point, normal, t })
 }
 
+pub fn circle_and_circle(c1: Circle, c2: Circle) -> bool {
+    let radii_sum = c1.radius + c2.radius;
+    c1.center.distance_squared(c2.center) <= radii_sum * radii_sum
+}
+
+pub fn circle_and_aabb(circle: Circle, rect: Rect) -> bool {
+    let mut closest_point_to_circle = circle.center;
+
+    if closest_point_to_circle.x < rect.min.x {
+        closest_point_to_circle.x = rect.min.x;
+    } else if closest_point_to_circle.x > rect.max.x {
+        closest_point_to_circle.x = rect.max.x;
+    }
+
+    if closest_point_to_circle.y < rect.min.y {
+        closest_point_to_circle.y = rect.min.y;
+    } else if closest_point_to_circle.y > rect.max.y {
+        closest_point_to_circle.y = rect.max.y;
+    }
+
+    closest_point_to_circle.distance_squared(circle.center) <= circle.radius * circle.radius
+}
+
+pub fn circle_and_obb(circle: Circle, rect: Rect, rotation: f32) -> bool {
+    // Treat the box as an aabb after rotating the stuff
+    // create local box
+    let local_rect = Rect::new(Vec2::ZERO, rect.size());
+
+    // create local circle
+    let r = circle.center - rect.center();
+    let r = Vec2::from_angle(-rotation).rotate(r);
+    let local_circle_pos = r + rect.half_size();
+    let local_circle = Circle::new(local_circle_pos, circle.radius);
+
+    circle_and_aabb(local_circle, local_rect)
+}
+
 #[cfg(test)]
 mod tests {
     use std::f32::consts::PI;
@@ -252,19 +289,13 @@ mod tests {
     #[test]
     fn line_intersects_circle() {
         let line = Line2D::new(Vec2::new(3.0, -2.0), Vec2::new(5.0, 3.0));
-        assert!(is_line_2d_intersecting_circle(
-            line,
-            LINE_INTERSECTION_CIRCLE
-        ));
+        assert!(line_2d_and_circle(line, LINE_INTERSECTION_CIRCLE));
     }
 
     #[test]
     fn line_does_not_intersect_circle() {
         let line = Line2D::new(Vec2::new(3.0, -2.0), Vec2::new(10.0, 4.0));
-        assert!(!is_line_2d_intersecting_circle(
-            line,
-            LINE_INTERSECTION_CIRCLE
-        ));
+        assert!(!line_2d_and_circle(line, LINE_INTERSECTION_CIRCLE));
     }
 
     #[test]
@@ -272,27 +303,21 @@ mod tests {
         let point_inside = Vec2::new(3.0, 4.0);
         let point_outside = Vec2::new(10.0, 5.0);
         let start_inside = Line2D::new(point_inside, point_outside);
-        assert!(is_line_2d_intersecting_circle(
-            start_inside,
-            LINE_INTERSECTION_CIRCLE
-        ));
+        assert!(line_2d_and_circle(start_inside, LINE_INTERSECTION_CIRCLE));
         let end_inside = Line2D::new(point_outside, point_inside);
-        assert!(is_line_2d_intersecting_circle(
-            end_inside,
-            LINE_INTERSECTION_CIRCLE
-        ));
+        assert!(line_2d_and_circle(end_inside, LINE_INTERSECTION_CIRCLE));
     }
 
     #[test]
     fn line_intersects_rect() {
         let line = Line2D::new(Vec2::new(3.0, -2.0), Vec2::new(11.0, 4.0));
-        assert!(is_line_2d_intersecting_aabb(line, LINE_INTERSECTION_RECT));
+        assert!(line_2d_and_aabb(line, LINE_INTERSECTION_RECT));
     }
 
     #[test]
     fn line_does_not_intersect_rect() {
         let line = Line2D::new(Vec2::new(3.0, -2.0), Vec2::new(11.0, 0.0));
-        assert!(!is_line_2d_intersecting_aabb(line, LINE_INTERSECTION_RECT));
+        assert!(!line_2d_and_aabb(line, LINE_INTERSECTION_RECT));
     }
 
     #[test]
@@ -300,29 +325,15 @@ mod tests {
         let point_inside = Vec2::new(3.0, 5.0);
         let point_outside = Vec2::new(12.0, 4.0);
         let start_inside = Line2D::new(point_inside, point_outside);
-        assert!(is_line_2d_intersecting_aabb(
-            start_inside,
-            LINE_INTERSECTION_RECT
-        ));
+        assert!(line_2d_and_aabb(start_inside, LINE_INTERSECTION_RECT));
         let end_inside = Line2D::new(point_outside, point_inside);
-        assert!(is_line_2d_intersecting_aabb(
-            end_inside,
-            LINE_INTERSECTION_RECT
-        ));
+        assert!(line_2d_and_aabb(end_inside, LINE_INTERSECTION_RECT));
     }
 
     #[test]
     fn line_intersects_obb_when_not_rotated_and_doesnt_when_rotated() {
         let line = Line2D::new(Vec2::new(-0.2, 6.0), Vec2::new(0.5, 9.0));
-        assert!(is_line_2d_intersecting_obb(
-            line,
-            LINE_INTERSECTION_RECT,
-            0.0
-        ));
-        assert!(!is_line_2d_intersecting_obb(
-            line,
-            LINE_INTERSECTION_RECT,
-            PI / 4.0
-        ));
+        assert!(line_2d_and_obb(line, LINE_INTERSECTION_RECT, 0.0));
+        assert!(!line_2d_and_obb(line, LINE_INTERSECTION_RECT, PI / 4.0));
     }
 }
