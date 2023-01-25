@@ -15,6 +15,7 @@ impl Ray2D {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct RaycastResult2D {
     pub point: Vec2,
     pub normal: Vec2,
