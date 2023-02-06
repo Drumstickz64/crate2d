@@ -14,8 +14,23 @@ macro_rules! impl_rect_common_methods {
             self.size() / 2.0
         }
 
+        pub fn set_size(&mut self, size: Vec2) {
+            let center = self.center();
+            let center_to_min = self.min - center;
+            let center_to_max = self.max - center;
+            let size_scale = size / self.size();
+            self.min = center_to_min * size_scale;
+            self.max = center_to_max * size_scale;
+        }
+
         pub fn center(self) -> Vec2 {
             self.min + self.half_size()
+        }
+
+        pub fn set_center(&mut self, center: Vec2) {
+            let half_size = self.half_size();
+            self.min = center - half_size;
+            self.max = center + half_size;
         }
     };
 }

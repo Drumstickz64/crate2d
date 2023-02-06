@@ -8,6 +8,7 @@ authors = ["Drumstickz64 gearman533@gmail.com"]
 
 [dependencies]
 approx = "0.5.1"
+generational-arena = "0.2.8"
 glam = { version = "0.22.0", features = ["approx", "debug-glam-assert"] }
 
 [dev-dependencies]

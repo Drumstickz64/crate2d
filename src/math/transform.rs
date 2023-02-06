@@ -1,10 +1,9 @@
 use glam::Vec2;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Transform {
     pub position: Vec2,
     pub rotation: f32,
-    pub scale: Vec2,
 }
 
 impl Transform {
@@ -19,23 +18,6 @@ impl Transform {
         Self {
             rotation,
             ..Default::default()
-        }
-    }
-
-    pub fn from_scale(scale: Vec2) -> Self {
-        Self {
-            scale,
-            ..Default::default()
-        }
-    }
-}
-
-impl Default for Transform {
-    fn default() -> Self {
-        Self {
-            position: Vec2::ZERO,
-            rotation: 0.0,
-            scale: Vec2::ONE,
         }
     }
 }
