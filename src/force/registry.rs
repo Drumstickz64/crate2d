@@ -1,10 +1,6 @@
 use generational_arena::{Arena, Index};
 
-use crate::RigidBody;
-
-pub trait ForceGenerator {
-    fn update_force(&self, body: &mut RigidBody, dt: f32);
-}
+use crate::{ForceGenerator, RigidBody};
 
 #[derive(Default, Debug)]
 pub(crate) struct ForceRegistry {
@@ -35,7 +31,7 @@ impl ForceRegistry {
     pub fn update_forces(
         &self,
         bodies: &mut Arena<RigidBody>,
-        generators: &mut Arena<Box<dyn ForceGenerator>>,
+        generators: &Arena<Box<dyn ForceGenerator>>,
         dt: f32,
     ) {
         for (_, registration) in &self.arena {
