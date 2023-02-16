@@ -1,9 +1,11 @@
 use generational_arena::{Arena, Index};
 
-use crate::{ForceGenerator, RigidBody};
+use crate::{RigidBodyHandle, RigidBodySet};
+
+use super::{ForceGeneratorHandle, ForceGeneratorSet};
 
 #[derive(Default, Debug)]
-pub(crate) struct ForceRegistry {
+pub struct ForceRegistry {
     arena: Arena<ForceRegistration>,
 }
 
@@ -12,16 +14,21 @@ impl ForceRegistry {
         Self::default()
     }
 
-    pub fn insert(&mut self, rigid_body_index: Index, force_generator_index: Index) -> Index {
+    pub fn insert(
+        &mut self,
+        rigid_body_handle: RigidBodyHandle,
+        force_generator_handle: ForceGeneratorHandle,
+    ) -> ForceRegistrationHandle {
         let registration = ForceRegistration {
-            rigid_body_index,
-            force_generator_index,
+            rigid_body_handle,
+            force_generator_handle,
         };
-        self.arena.insert(registration)
+        let index = self.arena.insert(registration);
+        ForceRegistrationHandle(index)
     }
 
-    pub fn remove(&mut self, i: Index) -> Option<ForceRegistration> {
-        self.arena.remove(i)
+    pub fn remove(&mut self, handle: ForceRegistrationHandle) -> Option<ForceRegistration> {
+        self.arena.remove(handle.0)
     }
 
     pub fn clear(&mut self) {
@@ -30,20 +37,22 @@ impl ForceRegistry {
 
     pub fn update_forces(
         &self,
-        bodies: &mut Arena<RigidBody>,
-        generators: &Arena<Box<dyn ForceGenerator>>,
+        bodies: &mut RigidBodySet,
+        generators: &ForceGeneratorSet,
         dt: f32,
     ) {
         for (_, registration) in &self.arena {
-            let body = &mut bodies[registration.force_generator_index];
-            let generator = &generators[registration.force_generator_index];
+            let body = &mut bodies[registration.rigid_body_handle];
+            let generator = &generators[registration.force_generator_handle];
             generator.update_force(body, dt);
         }
     }
 }
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct ForceRegistrationHandle(pub Index);
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub(crate) struct ForceRegistration {
-    pub rigid_body_index: Index,
-    pub force_generator_index: Index,
+pub struct ForceRegistration {
+    pub rigid_body_handle: RigidBodyHandle,
+    pub force_generator_handle: ForceGeneratorHandle,
 }

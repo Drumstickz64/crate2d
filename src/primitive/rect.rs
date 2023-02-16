@@ -32,6 +32,10 @@ macro_rules! impl_rect_common_methods {
             self.min = center - half_size;
             self.max = center + half_size;
         }
+
+        pub fn update_position(&mut self, position: Vec2) {
+            self.set_center(position);
+        }
     };
 }
 
@@ -42,20 +46,11 @@ pub struct Aabb {
 }
 
 impl Aabb {
-    pub fn new(min: Vec2, max: Vec2) -> Aabb {
+    pub const fn new(min: Vec2, max: Vec2) -> Aabb {
         Self { min, max }
     }
 
     impl_rect_common_methods!();
-
-    pub fn get_vertices(self) -> [Vec2; 4] {
-        [
-            Vec2::new(self.min.x, self.min.y),
-            Vec2::new(self.min.x, self.max.y),
-            Vec2::new(self.max.x, self.min.y),
-            Vec2::new(self.max.x, self.max.y),
-        ]
-    }
 }
 
 impl Convex for Aabb {
@@ -70,21 +65,21 @@ impl Convex for Aabb {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Obb {
+pub struct Box2D {
     pub min: Vec2,
     pub max: Vec2,
     pub rotation: f32,
 }
 
-impl Obb {
-    pub fn new(min: Vec2, max: Vec2, rotation: f32) -> Self {
+impl Box2D {
+    pub const fn new(min: Vec2, max: Vec2, rotation: f32) -> Self {
         Self { min, max, rotation }
     }
 
     impl_rect_common_methods!();
 }
 
-impl Convex for Obb {
+impl Convex for Box2D {
     fn get_vertices(&self) -> [Vec2; 4] {
         let center = self.center();
         let rotation_vec = Vec2::from_angle(self.rotation);

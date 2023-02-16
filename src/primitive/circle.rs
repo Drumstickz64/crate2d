@@ -10,4 +10,8 @@ impl Circle {
     pub const fn new(center: Vec2, radius: f32) -> Self {
         Self { center, radius }
     }
+
+    pub fn update_position(&mut self, position: Vec2) {
+        self.center = position;
+    }
 }

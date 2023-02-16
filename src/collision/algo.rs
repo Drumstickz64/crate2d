@@ -3,9 +3,11 @@ use glam::Vec2;
 
 use crate::{
     math::{div_or_zero, Vec2Ext},
-    primitive::{Convex, Obb},
-    Aabb, Circle, Collider2D, Line2D, Ray2D, RaycastResult2D,
+    primitive::{Box2D, Convex},
+    Aabb, Circle, Line2D, Ray2D, RaycastResult2D,
 };
+
+use super::collider::ColliderShape;
 
 pub fn is_point_on_line(point: Vec2, line: Line2D) -> bool {
     // Line equation: y = mx + b
@@ -31,12 +33,12 @@ pub fn is_point_in_aabb(point: Vec2, aabb: Aabb) -> bool {
     point.x >= aabb.min.x && point.x <= aabb.max.x && point.y >= aabb.min.y && point.y <= aabb.max.y
 }
 
-pub fn is_point_in_obb(point: Vec2, obb: Obb) -> bool {
-    let rotated_point = Vec2::from_angle(obb.rotation).rotate_around_point(point, obb.center());
-    rotated_point.x >= obb.min.x
-        && rotated_point.x <= obb.max.x
-        && rotated_point.y >= obb.min.y
-        && rotated_point.y <= obb.max.y
+pub fn is_point_in_box2d(point: Vec2, box2d: Box2D) -> bool {
+    let rotated_point = Vec2::from_angle(box2d.rotation).rotate_around_point(point, box2d.center());
+    rotated_point.x >= box2d.min.x
+        && rotated_point.x <= box2d.max.x
+        && rotated_point.y >= box2d.min.y
+        && rotated_point.y <= box2d.max.y
 }
 
 pub fn line_and_circle(line: Line2D, circle: Circle) -> bool {
@@ -75,24 +77,23 @@ pub fn line_and_aabb(line: Line2D, aabb: Aabb) -> bool {
     t > 0.0 && t * t < line.length_squared()
 }
 
-pub fn line_and_obb(line: Line2D, obb: Obb) -> bool {
-    let rotation_vec = Vec2::from_angle(-obb.rotation);
-    let rect_center = obb.center();
+pub fn line_and_box2d(line: Line2D, box2d: Box2D) -> bool {
+    let rotation_vec = Vec2::from_angle(-box2d.rotation);
+    let rect_center = box2d.center();
     let rotated_start = rotation_vec.rotate_around_point(line.start, rect_center);
     let rotated_end = rotation_vec.rotate_around_point(line.end, rect_center);
     let rotated_line = Line2D::new(rotated_start, rotated_end);
-    line_and_aabb(rotated_line, Aabb::new(obb.min, obb.max))
+    line_and_aabb(rotated_line, Aabb::new(box2d.min, box2d.max))
 }
 
-pub fn raycast(ray: Ray2D, collider: Collider2D) -> Option<RaycastResult2D> {
+pub fn raycast_shape(ray: Ray2D, collider: ColliderShape) -> Option<RaycastResult2D> {
     match collider {
-        Collider2D::Circle(circle) => raycast_circle(ray, circle),
-        Collider2D::Aabb(aabb) => raycast_aabb(ray, aabb),
-        Collider2D::Obb(obb) => raycast_obb(ray, obb),
+        ColliderShape::Circle(circle) => raycast_circle(ray, circle),
+        ColliderShape::Box2D(box2d) => raycast_box2d(ray, box2d),
     }
 }
 
-fn raycast_circle(ray: Ray2D, circle: Circle) -> Option<RaycastResult2D> {
+pub fn raycast_circle(ray: Ray2D, circle: Circle) -> Option<RaycastResult2D> {
     let origin_to_center = circle.center - ray.origin;
     let radius_squared = circle.radius * circle.radius;
     let origin_to_center_length_squared = origin_to_center.length_squared();
@@ -118,7 +119,7 @@ fn raycast_circle(ray: Ray2D, circle: Circle) -> Option<RaycastResult2D> {
     Some(RaycastResult2D { point, normal, t })
 }
 
-fn raycast_aabb(ray: Ray2D, aabb: Aabb) -> Option<RaycastResult2D> {
+pub fn raycast_aabb(ray: Ray2D, aabb: Aabb) -> Option<RaycastResult2D> {
     let origin_to_max = aabb.max - ray.origin;
     let origin_to_min = aabb.min - ray.origin;
     let direction = ray.direction;
@@ -146,13 +147,13 @@ fn raycast_aabb(ray: Ray2D, aabb: Aabb) -> Option<RaycastResult2D> {
     Some(RaycastResult2D { point, normal, t })
 }
 
-fn raycast_obb(ray: Ray2D, obb: Obb) -> Option<RaycastResult2D> {
-    let rotation_vec = Vec2::from_angle(-obb.rotation);
+pub fn raycast_box2d(ray: Ray2D, box2d: Box2D) -> Option<RaycastResult2D> {
+    let rotation_vec = Vec2::from_angle(-box2d.rotation);
     let x_axis = rotation_vec.rotate(Vec2::X);
     let y_axis = rotation_vec.rotate(Vec2::Y);
-    let half_size = obb.half_size();
+    let half_size = box2d.half_size();
 
-    let p = obb.center() - ray.origin;
+    let p = box2d.center() - ray.origin;
 
     // project the ray direction onto each axis of the box
     let mut f = Vec2::new(x_axis.dot(ray.direction), y_axis.dot(ray.direction));
@@ -216,15 +217,15 @@ pub fn circle_and_aabb(circle: Circle, aabb: Aabb) -> bool {
     closest_point_to_circle.distance_squared(circle.center) <= circle.radius * circle.radius
 }
 
-pub fn circle_and_obb(circle: Circle, obb: Obb) -> bool {
+pub fn circle_and_box2d(circle: Circle, box2d: Box2D) -> bool {
     // Treat the box as an aabb after rotating the stuff
     // create local box
-    let local_rect = Aabb::new(Vec2::ZERO, obb.size());
+    let local_rect = Aabb::new(Vec2::ZERO, box2d.size());
 
     // create local circle
-    let r = circle.center - obb.center();
-    let r = Vec2::from_angle(-obb.rotation).rotate(r);
-    let local_circle_pos = r + obb.half_size();
+    let r = circle.center - box2d.center();
+    let r = Vec2::from_angle(-box2d.rotation).rotate(r);
+    let local_circle_pos = r + box2d.half_size();
     let local_circle = Circle::new(local_circle_pos, circle.radius);
 
     circle_and_aabb(local_circle, local_rect)
@@ -236,39 +237,39 @@ pub fn aabb_and_aabb(rect1: Aabb, rect2: Aabb) -> bool {
         .all(|axis| is_overlapping_on_axis(rect1, rect2, axis))
 }
 
-pub fn aabb_and_obb(aabb: Aabb, obb: Obb) -> bool {
-    let center = obb.center();
-    let rotation_vec = Vec2::from_angle(obb.rotation);
-    let obb_axes = [
+pub fn aabb_and_box2d(aabb: Aabb, box2d: Box2D) -> bool {
+    let center = box2d.center();
+    let rotation_vec = Vec2::from_angle(box2d.rotation);
+    let box2d_axes = [
         rotation_vec.rotate_around_point(Vec2::X, center),
         rotation_vec.rotate_around_point(Vec2::Y, center),
     ];
 
     Vec2::AXES
         .into_iter()
-        .chain(obb_axes)
-        .all(|axis| is_overlapping_on_axis(aabb, obb, axis))
+        .chain(box2d_axes)
+        .all(|axis| is_overlapping_on_axis(aabb, box2d, axis))
 }
 
-pub fn obb_and_obb(obb1: Obb, obb2: Obb) -> bool {
-    let center1 = obb1.center();
-    let rotation_vec1 = Vec2::from_angle(obb1.rotation);
-    let obb1_axes = [
+pub fn box2d_and_box2d(box2d1: Box2D, box2d2: Box2D) -> bool {
+    let center1 = box2d1.center();
+    let rotation_vec1 = Vec2::from_angle(box2d1.rotation);
+    let box2d1_axes = [
         rotation_vec1.rotate_around_point(Vec2::X, center1),
         rotation_vec1.rotate_around_point(Vec2::Y, center1),
     ];
 
-    let center2 = obb2.center();
-    let rotation_vec2 = Vec2::from_angle(obb2.rotation);
-    let obb2_axes = [
+    let center2 = box2d2.center();
+    let rotation_vec2 = Vec2::from_angle(box2d2.rotation);
+    let box2d2_axes = [
         rotation_vec2.rotate_around_point(Vec2::X, center2),
         rotation_vec2.rotate_around_point(Vec2::Y, center2),
     ];
 
-    obb1_axes
+    box2d1_axes
         .into_iter()
-        .chain(obb2_axes)
-        .all(|axis| is_overlapping_on_axis(obb1, obb2, axis))
+        .chain(box2d2_axes)
+        .all(|axis| is_overlapping_on_axis(box2d1, box2d2, axis))
 }
 
 // ==========================================
@@ -281,17 +282,18 @@ fn is_overlapping_on_axis(shape1: impl Convex, shape2: impl Convex, axis: Vec2) 
     interval1.y >= interval2.x && interval1.x <= interval2.y
 }
 
-fn get_interval(aabb: impl Convex, axis: Vec2) -> Vec2 {
-    let vertices = aabb.get_vertices();
+fn get_interval(shape: impl Convex, axis: Vec2) -> Vec2 {
+    let vertices = shape.get_vertices();
 
-    vertices.into_iter().map(|vertex| axis.dot(vertex)).fold(
-        Vec2::ZERO,
-        |mut result, projection| {
-            result.x = result.x.min(projection);
-            result.y = result.y.max(projection);
-            result
-        },
-    )
+    vertices
+        .into_iter()
+        .fold(vertices[0].dot_into_vec(axis), |result, vertex| {
+            let projection = vertex.dot(axis);
+            Vec2::new(
+                f32::min(result.x, projection),
+                f32::max(result.y, projection),
+            )
+        })
 }
 
 #[cfg(test)]
@@ -337,17 +339,17 @@ mod tests {
     }
 
     #[test]
-    fn test_is_point_in_obb() {
+    fn test_is_point_in_box2d() {
         let point = Vec2::new(0.2, 3.8);
-        let mut obb = Obb::new(Vec2::new(0.0, 0.0), Vec2::new(4.0, 4.0), 0.0);
-        assert!(is_point_in_obb(point, obb));
+        let mut box2d = Box2D::new(Vec2::new(0.0, 0.0), Vec2::new(4.0, 4.0), 0.0);
+        assert!(is_point_in_box2d(point, box2d));
 
-        obb.rotation = PI / 4.0;
-        assert!(!is_point_in_obb(point, obb));
+        box2d.rotation = PI / 4.0;
+        assert!(!is_point_in_box2d(point, box2d));
 
-        obb.rotation = 0.0;
+        box2d.rotation = 0.0;
         let point = Vec2::new(3.0, 5.0);
-        assert!(!is_point_in_obb(point, obb));
+        assert!(!is_point_in_box2d(point, box2d));
     }
 
     const LINE_INTERSECTION_CIRCLE: Circle = Circle::new(Vec2::splat(5.0), 3.0);
@@ -400,11 +402,11 @@ mod tests {
     }
 
     #[test]
-    fn line_intersects_obb_when_before_rotation_and_doesnt_after_rotation() {
+    fn line_intersects_box2d_when_before_rotation_and_doesnt_after_rotation() {
         let line = Line2D::new(Vec2::new(-0.2, 6.0), Vec2::new(0.5, 9.0));
-        let mut obb = Obb::new(Vec2::ZERO, Vec2::splat(8.0), 0.0);
-        assert!(line_and_obb(line, obb));
-        obb.rotation = PI / 4.0;
-        assert!(!line_and_obb(line, obb));
+        let mut box2d = Box2D::new(Vec2::ZERO, Vec2::splat(8.0), 0.0);
+        assert!(line_and_box2d(line, box2d));
+        box2d.rotation = PI / 4.0;
+        assert!(!line_and_box2d(line, box2d));
     }
 }

@@ -1,0 +1,138 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'crate2d'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=crate2d"
+                ],
+                "filter": {
+                    "name": "crate2d",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'collision_detection'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=collision_detection",
+                    "--package=crate2d"
+                ],
+                "filter": {
+                    "name": "collision_detection",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'collision_detection'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=collision_detection",
+                    "--package=crate2d"
+                ],
+                "filter": {
+                    "name": "collision_detection",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'collision_response'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=collision_response",
+                    "--package=crate2d"
+                ],
+                "filter": {
+                    "name": "collision_response",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'collision_response'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=collision_response",
+                    "--package=crate2d"
+                ],
+                "filter": {
+                    "name": "collision_response",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'dynamics'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=dynamics",
+                    "--package=crate2d"
+                ],
+                "filter": {
+                    "name": "dynamics",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'dynamics'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=dynamics",
+                    "--package=crate2d"
+                ],
+                "filter": {
+                    "name": "dynamics",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
