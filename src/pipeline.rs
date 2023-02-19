@@ -52,7 +52,7 @@ impl PhysicsPipeline {
 
         // Find collisions
         self.collisions.clear();
-        for (i, (body_handle1, body1)) in bodies.iter().take(bodies.len() - 1).enumerate() {
+        for (i, (body_handle1, body1)) in bodies.iter().enumerate() {
             for (body_handle2, body2) in bodies.iter().skip(i + 1) {
                 if body1.has_infinite_mass() && body2.has_infinite_mass() {
                     continue;
@@ -82,12 +82,10 @@ impl PhysicsPipeline {
         // Resolve collisions via iterative impulse resolution
         for _ in 0..Self::IMPULSE_ITERATIONS {
             for collision in self.collisions.iter() {
-                for _ in 0..collision.manifold.contact_points.len() {
-                    let (Some(rb1), Some(rb2)) = bodies.get2_mut(collision.body_handle1, collision.body_handle2) else {
+                let (Some(rb1), Some(rb2)) = bodies.get2_mut(collision.body_handle1, collision.body_handle2) else {
                         panic!("Rigid body not found");
                     };
-                    self.apply_impulse(rb1, rb2, &collision.manifold);
-                }
+                self.apply_impulse(rb1, rb2, &collision.manifold);
             }
         }
 
@@ -95,8 +93,6 @@ impl PhysicsPipeline {
         for (_, body) in bodies.iter_mut() {
             body.physics_update(self.fixed_dt, colliders);
         }
-
-        // Apply linear projection
     }
 
     pub fn fixed_dt(&self) -> f32 {
@@ -124,10 +120,7 @@ impl PhysicsPipeline {
         }
         let e = rb1.cor.min(rb2.cor);
         let impulse_vel = -((1.0 + e) * relative_vel.dot(manifold.normal));
-        let mut impulse = impulse_vel / inv_mass_sum;
-        if !manifold.contact_points.is_empty() && impulse != 0.0 {
-            impulse /= manifold.contact_points.len() as f32;
-        }
+        let impulse = impulse_vel / inv_mass_sum;
 
         rb1.linear_velocity -= rb1.inv_mass * impulse * manifold.normal;
         rb2.linear_velocity += rb2.inv_mass * impulse * manifold.normal;

@@ -28,6 +28,7 @@ impl ColliderSet {
         let body = &mut bodies[body_handle];
         collider.parent = Some(body_handle);
         collider.update_position(body.position);
+        collider.update_rotation(body.rotation);
         let collider_handle = self.insert(collider);
         body.collider = Some(collider_handle);
         collider_handle

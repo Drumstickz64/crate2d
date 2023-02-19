@@ -1,8 +1,8 @@
 pub mod collision;
-mod dynamics;
-mod force;
-mod math;
-mod pipeline;
+pub mod dynamics;
+pub mod force;
+pub mod math;
+pub mod pipeline;
 pub mod primitive;
 
 pub use dynamics::*;

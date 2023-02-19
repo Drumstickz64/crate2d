@@ -1,8 +1,8 @@
 mod vec2_ext;
 
-pub(crate) use vec2_ext::Vec2Ext;
+pub use vec2_ext::Vec2Ext;
 
-pub(crate) fn div_or_zero(x: f32, y: f32) -> f32 {
+pub fn div_or_zero(x: f32, y: f32) -> f32 {
     if y == 0.0 {
         0.0
     } else {
@@ -10,7 +10,7 @@ pub(crate) fn div_or_zero(x: f32, y: f32) -> f32 {
     }
 }
 
-pub(crate) fn recip_or_zero(x: f32) -> f32 {
+pub fn recip_or_zero(x: f32) -> f32 {
     if x == 0.0 {
         0.0
     } else {

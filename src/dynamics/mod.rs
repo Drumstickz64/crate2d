@@ -1,4 +1,4 @@
-pub(crate) mod collision;
+pub mod collision;
 mod rigid_body;
 mod rigid_body_set;
 

@@ -8,7 +8,7 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Collider {
-    pub(crate) shape: ColliderShape,
+    pub shape: ColliderShape,
     pub(crate) parent: Option<RigidBodyHandle>,
 }
 
@@ -25,10 +25,11 @@ impl Collider {
     }
 
     pub fn update_position(&mut self, position: Vec2) {
-        match &mut self.shape {
-            ColliderShape::Circle(circle) => circle.update_position(position),
-            ColliderShape::Box2D(box2d) => box2d.update_position(position),
-        }
+        self.shape.update_position(position);
+    }
+
+    pub fn update_rotation(&mut self, rotation: f32) {
+        self.shape.update_rotation(rotation);
     }
 
     pub fn set_parent(&mut self, parent: RigidBodyHandle) {
@@ -55,6 +56,27 @@ impl ColliderShape {
                 algo::circle_and_box2d(circle, box2d)
             }
             (ColliderShape::Box2D(b1), ColliderShape::Box2D(b2)) => algo::box2d_and_box2d(b1, b2),
+        }
+    }
+
+    pub fn update_position(&mut self, position: Vec2) {
+        match self {
+            ColliderShape::Circle(circle) => circle.center = position,
+            ColliderShape::Box2D(box2d) => box2d.set_center(position),
+        }
+    }
+
+    fn update_rotation(&mut self, rotation: f32) {
+        match self {
+            ColliderShape::Circle(_) => (),
+            ColliderShape::Box2D(box2d) => box2d.rotation = rotation,
+        }
+    }
+
+    pub fn center(self) -> Vec2 {
+        match self {
+            ColliderShape::Circle(c) => c.center,
+            ColliderShape::Box2D(b) => b.center(),
         }
     }
 }

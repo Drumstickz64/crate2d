@@ -1,14 +1,15 @@
 use crate2d::{
     collision::{Collider, ColliderSet, ColliderShape},
     glam::Vec2,
-    Circle, ForceGenerator, ForceGeneratorSet, ForceRegistry, PhysicsPipeline, RigidBody,
+    Box2D, Circle, ForceGenerator, ForceGeneratorSet, ForceRegistry, PhysicsPipeline, RigidBody,
     RigidBodySet,
 };
 use macroquad::prelude::*;
 
-const CIRCLE_RADIUS: f32 = 0.75;
+const CIRCLE_RADIUS: f32 = 1.25;
+const BOX_SIZE: f32 = 2.0;
 const COLORS: [Color; 2] = [RED, BLUE];
-const WIND_SPEED: Vec2 = Vec2::new(-31.25, 0.0);
+const WIND_SPEED: Vec2 = Vec2::new(-20.0, 0.0);
 const FIXED_DT: f32 = 1.0 / 60.0;
 
 #[macroquad::main("Dynamics demo")]
@@ -29,27 +30,71 @@ impl Demo {
     pub fn new() -> Self {
         let pipeline = PhysicsPipeline::new(FIXED_DT);
         let mut bodies = RigidBodySet::new();
-        let position1 = Vec2::new(12.0, 12.0);
-        let mut rb1 = RigidBody::new(position1, 0.0);
-        rb1.set_mass(5.0);
-        let rb1_handle = bodies.insert(rb1);
-        let position2 = Vec2::new(25.0, 12.0);
-        let mut rb2 = RigidBody::new(position2, 0.0);
-        rb2.set_mass(10.0);
-        let rb2_handle = bodies.insert(rb2);
-
         let mut generators = ForceGeneratorSet::new();
+        let mut force_registry = ForceRegistry::new();
+        let mut colliders = ColliderSet::new();
         let right_wind_handle = generators.insert(Box::new(Wind { speed: -WIND_SPEED }));
         let left_wind_handle = generators.insert(Box::new(Wind { speed: WIND_SPEED }));
-        let mut force_registry = ForceRegistry::new();
-        force_registry.insert(rb1_handle, right_wind_handle);
-        force_registry.insert(rb2_handle, left_wind_handle);
-        let mut colliders = ColliderSet::new();
+
+        // Circle vs Circle
+
+        let position = Vec2::new(12.0, 12.0);
+        let mut circle1 = RigidBody::new(position, 0.0);
+        circle1.set_mass(5.0);
+        let circle1_handle = bodies.insert(circle1);
+        let position = Vec2::new(25.0, 12.0);
+        let mut circle2 = RigidBody::new(position, 0.0);
+        circle2.set_mass(10.0);
+        let circle2_handle = bodies.insert(circle2);
+        force_registry.insert(circle1_handle, right_wind_handle);
+        force_registry.insert(circle2_handle, left_wind_handle);
         let shape = ColliderShape::Circle(Circle::new(Vec2::ZERO, CIRCLE_RADIUS));
         let coll1 = Collider::new(shape);
         let coll2 = Collider::new(shape);
-        colliders.insert_with_parent(coll1, rb1_handle, &mut bodies);
-        colliders.insert_with_parent(coll2, rb2_handle, &mut bodies);
+        colliders.insert_with_parent(coll1, circle1_handle, &mut bodies);
+        colliders.insert_with_parent(coll2, circle2_handle, &mut bodies);
+
+        // Circle vs Box2D
+
+        let position = Vec2::new(12.0, 16.0);
+        let mut circle = RigidBody::new(position, 0.0);
+        circle.set_mass(5.0);
+        let circle_handle = bodies.insert(circle);
+        let position = Vec2::new(25.0, 16.0);
+        let mut cbox = RigidBody::new(position, f32::to_radians(30.0));
+        cbox.set_mass(10.0);
+        let cbox_handle = bodies.insert(cbox);
+        force_registry.insert(circle_handle, right_wind_handle);
+        force_registry.insert(cbox_handle, left_wind_handle);
+        let coll1 = Collider::new(ColliderShape::Circle(Circle::new(
+            Vec2::ZERO,
+            CIRCLE_RADIUS,
+        )));
+        let coll2 = Collider::new(ColliderShape::Box2D(Box2D::new(
+            Vec2::ZERO,
+            Vec2::splat(BOX_SIZE),
+            0.0,
+        )));
+        colliders.insert_with_parent(coll1, circle_handle, &mut bodies);
+        colliders.insert_with_parent(coll2, cbox_handle, &mut bodies);
+
+        // Box2D vs Box2D, I couldn't get this working properly
+
+        // let position = Vec2::new(12.0, 20.0);
+        // let mut box1 = RigidBody::new(position, f32::to_radians(45.0));
+        // box1.set_mass(5.0);
+        // let box1_handle = bodies.insert(box1);
+        // let position = Vec2::new(25.0, 20.0);
+        // let mut box2 = RigidBody::new(position, f32::to_radians(45.0));
+        // box2.set_mass(10.0);
+        // let box2_handle = bodies.insert(box2);
+        // force_registry.insert(box1_handle, right_wind_handle);
+        // force_registry.insert(box2_handle, left_wind_handle);
+        // let shape = ColliderShape::Box2D(Box2D::new(Vec2::ZERO, Vec2::splat(BOX_SIZE), 0.0));
+        // let coll1 = Collider::new(shape);
+        // let coll2 = Collider::new(shape);
+        // colliders.insert_with_parent(coll1, box1_handle, &mut bodies);
+        // colliders.insert_with_parent(coll2, box2_handle, &mut bodies);
 
         Self {
             pipeline,
@@ -73,13 +118,29 @@ impl Demo {
     }
 
     pub fn draw(&self) {
-        for (color_i, (_, body)) in self.bodies.iter().enumerate() {
-            draw_circle(
-                body.position().x * 16.0,
-                body.position().y * 16.0,
-                CIRCLE_RADIUS * 16.0,
-                COLORS[color_i],
-            )
+        for (i, (_, body)) in self.bodies.iter().enumerate() {
+            let collider = &self.colliders[body.collider().unwrap()];
+            let color = COLORS[i % 2];
+            match collider.shape {
+                ColliderShape::Circle(c) => draw_circle(
+                    c.center.x * 16.0,
+                    c.center.y * 16.0,
+                    CIRCLE_RADIUS * 16.0,
+                    color,
+                ),
+                ColliderShape::Box2D(b) => {
+                    let radius = b.half_size().length();
+                    let bcenter = b.center();
+                    draw_poly(
+                        bcenter.x * 16.0,
+                        bcenter.y * 16.0,
+                        4,
+                        radius * 16.0,
+                        45.0 - b.rotation.to_degrees(),
+                        color,
+                    );
+                }
+            }
         }
     }
 

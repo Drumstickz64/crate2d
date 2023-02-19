@@ -17,9 +17,6 @@ pub struct RigidBody {
     pub(crate) inv_mass: f32,
     pub(crate) force_accumulator: Vec2,
     pub(crate) linear_velocity: Vec2,
-    pub(crate) angular_velocity: f32,
-    pub(crate) linear_damping: f32,
-    pub(crate) angular_damping: f32,
     pub(crate) collider: Option<ColliderHandle>,
     pub(crate) force_registrations: Vec<ForceRegistrationHandle>,
 }
@@ -35,9 +32,6 @@ impl RigidBody {
             inv_mass: 0.0,
             force_accumulator: Vec2::ZERO,
             linear_velocity: Vec2::ZERO,
-            angular_velocity: 0.0,
-            linear_damping: 0.0,
-            angular_damping: 0.0,
             collider: None,
             force_registrations: Vec::new(),
         }
@@ -73,18 +67,6 @@ impl RigidBody {
 
     pub fn linear_velocity(&self) -> Vec2 {
         self.linear_velocity
-    }
-
-    pub fn angular_velocity(&self) -> f32 {
-        self.angular_velocity
-    }
-
-    pub fn linear_damping(&self) -> f32 {
-        self.linear_damping
-    }
-
-    pub fn angular_damping(&self) -> f32 {
-        self.angular_damping
     }
 
     pub fn mass(&self) -> f32 {

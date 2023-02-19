@@ -14,13 +14,10 @@ macro_rules! impl_rect_common_methods {
             self.size() / 2.0
         }
 
-        pub fn set_size(&mut self, size: Vec2) {
-            let center = self.center();
-            let center_to_min = self.min - center;
-            let center_to_max = self.max - center;
-            let size_scale = size / self.size();
-            self.min = center_to_min * size_scale;
-            self.max = center_to_max * size_scale;
+        pub fn set_size(&mut self, new_size: Vec2) {
+            let size_delta = new_size - self.size();
+            self.min -= size_delta;
+            self.max += size_delta;
         }
 
         pub fn center(self) -> Vec2 {
@@ -31,10 +28,6 @@ macro_rules! impl_rect_common_methods {
             let half_size = self.half_size();
             self.min = center - half_size;
             self.max = center + half_size;
-        }
-
-        pub fn update_position(&mut self, position: Vec2) {
-            self.set_center(position);
         }
     };
 }
@@ -51,9 +44,24 @@ impl Aabb {
     }
 
     impl_rect_common_methods!();
+
+    pub fn from_center_and_half_size(center: Vec2, half_size: Vec2) -> Aabb {
+        let min = center - half_size;
+        let max = center + half_size;
+        Self { min, max }
+    }
 }
 
-impl Convex for Aabb {
+impl From<Box2D> for Aabb {
+    fn from(b: Box2D) -> Self {
+        Self {
+            min: b.min,
+            max: b.max,
+        }
+    }
+}
+
+impl Convex<4> for Aabb {
     fn get_vertices(&self) -> [Vec2; 4] {
         [
             Vec2::new(self.min.x, self.min.y),
@@ -79,7 +87,17 @@ impl Box2D {
     impl_rect_common_methods!();
 }
 
-impl Convex for Box2D {
+impl From<Aabb> for Box2D {
+    fn from(b: Aabb) -> Self {
+        Self {
+            min: b.min,
+            max: b.max,
+            rotation: 0.0,
+        }
+    }
+}
+
+impl Convex<4> for Box2D {
     fn get_vertices(&self) -> [Vec2; 4] {
         let center = self.center();
         let rotation_vec = Vec2::from_angle(self.rotation);

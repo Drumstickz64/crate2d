@@ -1,9 +1,6 @@
-use crate2d::{collision, glam::Vec2, Box2D, Circle, ForceGenerator, RigidBody};
+use crate2d::{collision::ColliderShape, glam::Vec2, Box2D, Circle, ForceGenerator, RigidBody};
 
 use macroquad::prelude::*;
-
-const COLLISION_COLOR: Color = GREEN;
-const COLORS: [Color; 2] = [RED, BLUE];
 
 #[macroquad::main("Dynamics demo")]
 async fn main() {
@@ -12,60 +9,70 @@ async fn main() {
 }
 
 struct Demo {
-    circle1: Circle,
-    circle2: Circle,
-    box1: Box2D,
-    box2: Box2D,
-    are_circles_colliding: bool,
-    are_boxes_colliding: bool,
+    circle1: ColliderShape,
+    circle2: ColliderShape,
+    box1: ColliderShape,
+    box2: ColliderShape,
+    colliding: Vec<ColliderShape>,
 }
 
 impl Demo {
     pub fn new() -> Self {
         Self {
-            circle1: Circle::new(Vec2::new(200.0, 200.0), 7.5),
-            circle2: Circle::new(Vec2::new(400.0, 200.0), 10.0),
-            box1: Box2D::new(Vec2::new(175.0, 375.0), Vec2::new(225.0, 325.0), 0.0),
-            box2: Box2D::new(Vec2::new(375.0, 375.0), Vec2::new(425.0, 325.0), 0.0),
-            are_circles_colliding: false,
-            are_boxes_colliding: false,
+            circle1: ColliderShape::Circle(Circle::new(Vec2::new(200.0, 200.0), 7.5)),
+            circle2: ColliderShape::Circle(Circle::new(Vec2::new(400.0, 200.0), 10.0)),
+            box1: ColliderShape::Box2D(Box2D::new(
+                Vec2::new(175.0, 325.0),
+                Vec2::new(225.0, 375.0),
+                f32::to_radians(30.0),
+            )),
+            box2: ColliderShape::Box2D(Box2D::new(
+                Vec2::new(375.0, 325.0),
+                Vec2::new(425.0, 375.0),
+                f32::to_radians(45.0),
+            )),
+            colliding: Vec::new(),
         }
     }
 
     pub fn update(&mut self) {
-        let mouse_x = mouse_position().0;
-        self.circle2
-            .update_position(Vec2::new(mouse_x, self.circle2.center.y));
-        self.box2
-            .update_position(Vec2::new(mouse_x, self.box2.center().y));
-        self.are_circles_colliding = collision::algo::circle_and_circle(self.circle1, self.circle2);
-        self.are_boxes_colliding = collision::algo::box2d_and_box2d(self.box1, self.box2);
+        self.colliding.clear();
+        let mouse_pos = Vec2::from(mouse_position());
+        let offset_vec = Vec2::new(0.0, 50.0);
+        self.circle2.update_position(mouse_pos - offset_vec);
+        self.box2.update_position(mouse_pos + offset_vec);
+        let shapes = [self.circle1, self.box1, self.circle2, self.box2];
+        for (i, shape1) in shapes.into_iter().enumerate() {
+            for shape2 in shapes.into_iter().skip(i + 1) {
+                if shape1.test_collision(shape2) {
+                    self.colliding.extend([shape1, shape2]);
+                }
+            }
+        }
     }
 
     pub fn draw(&self) {
-        for (i, circle) in [self.circle1, self.circle2].into_iter().enumerate() {
-            let circle_color = if self.are_circles_colliding {
-                COLLISION_COLOR
+        for shape in [self.circle1, self.circle2, self.box1, self.box2] {
+            let color = if self.colliding.contains(&shape) {
+                GREEN
             } else {
-                COLORS[i]
+                RED
             };
-            draw_circle(
-                circle.center.x,
-                circle.center.y,
-                circle.radius,
-                circle_color,
-            );
-        }
-        for (i, box2d) in [self.box1, self.box2].into_iter().enumerate() {
-            let box_color = if self.are_boxes_colliding {
-                COLLISION_COLOR
-            } else {
-                COLORS[i]
-            };
-
-            let center = box2d.center();
-            let size = box2d.size();
-            draw_rectangle(center.x, center.y, size.x, size.y, box_color);
+            match shape {
+                ColliderShape::Circle(c) => draw_circle(c.center.x, c.center.y, c.radius, color),
+                ColliderShape::Box2D(b) => {
+                    let bcenter = b.center();
+                    let radius = b.half_size().length();
+                    draw_poly(
+                        bcenter.x,
+                        bcenter.y,
+                        4,
+                        radius,
+                        45.0 - b.rotation.to_degrees(),
+                        color,
+                    );
+                }
+            }
         }
     }
 

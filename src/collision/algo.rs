@@ -18,7 +18,7 @@ pub fn is_point_on_line(point: Vec2, line: Line2D) -> bool {
     let dy = line.end.y - line.start.y;
     let slope = dy / dx;
 
-    // any point to find b
+    // Use any point to find b (in this case we use the line end point)
     let y_intercept = line.end.y - (slope * line.end.x);
 
     // check if point is on line
@@ -200,20 +200,7 @@ pub fn circle_and_circle(c1: Circle, c2: Circle) -> bool {
 }
 
 pub fn circle_and_aabb(circle: Circle, aabb: Aabb) -> bool {
-    let mut closest_point_to_circle = circle.center;
-
-    if closest_point_to_circle.x < aabb.min.x {
-        closest_point_to_circle.x = aabb.min.x;
-    } else if closest_point_to_circle.x > aabb.max.x {
-        closest_point_to_circle.x = aabb.max.x;
-    }
-
-    if closest_point_to_circle.y < aabb.min.y {
-        closest_point_to_circle.y = aabb.min.y;
-    } else if closest_point_to_circle.y > aabb.max.y {
-        closest_point_to_circle.y = aabb.max.y;
-    }
-
+    let closest_point_to_circle = circle.center.clamp(aabb.min, aabb.max);
     closest_point_to_circle.distance_squared(circle.center) <= circle.radius * circle.radius
 }
 
@@ -238,12 +225,8 @@ pub fn aabb_and_aabb(rect1: Aabb, rect2: Aabb) -> bool {
 }
 
 pub fn aabb_and_box2d(aabb: Aabb, box2d: Box2D) -> bool {
-    let center = box2d.center();
     let rotation_vec = Vec2::from_angle(box2d.rotation);
-    let box2d_axes = [
-        rotation_vec.rotate_around_point(Vec2::X, center),
-        rotation_vec.rotate_around_point(Vec2::Y, center),
-    ];
+    let box2d_axes = [rotation_vec.rotate(Vec2::X), rotation_vec.rotate(Vec2::Y)];
 
     Vec2::AXES
         .into_iter()
@@ -252,19 +235,11 @@ pub fn aabb_and_box2d(aabb: Aabb, box2d: Box2D) -> bool {
 }
 
 pub fn box2d_and_box2d(box2d1: Box2D, box2d2: Box2D) -> bool {
-    let center1 = box2d1.center();
     let rotation_vec1 = Vec2::from_angle(box2d1.rotation);
-    let box2d1_axes = [
-        rotation_vec1.rotate_around_point(Vec2::X, center1),
-        rotation_vec1.rotate_around_point(Vec2::Y, center1),
-    ];
+    let box2d1_axes = [rotation_vec1.rotate(Vec2::X), rotation_vec1.rotate(Vec2::Y)];
 
-    let center2 = box2d2.center();
     let rotation_vec2 = Vec2::from_angle(box2d2.rotation);
-    let box2d2_axes = [
-        rotation_vec2.rotate_around_point(Vec2::X, center2),
-        rotation_vec2.rotate_around_point(Vec2::Y, center2),
-    ];
+    let box2d2_axes = [rotation_vec2.rotate(Vec2::X), rotation_vec2.rotate(Vec2::Y)];
 
     box2d1_axes
         .into_iter()
@@ -276,24 +251,31 @@ pub fn box2d_and_box2d(box2d1: Box2D, box2d2: Box2D) -> bool {
 // SAT helpers
 // ==========================================
 
-fn is_overlapping_on_axis(shape1: impl Convex, shape2: impl Convex, axis: Vec2) -> bool {
+pub(crate) fn is_overlapping_on_axis<const N: usize, const M: usize>(
+    shape1: impl Convex<N>,
+    shape2: impl Convex<M>,
+    axis: Vec2,
+) -> bool {
     let interval1 = get_interval(shape1, axis);
     let interval2 = get_interval(shape2, axis);
     interval1.y >= interval2.x && interval1.x <= interval2.y
 }
 
-fn get_interval(shape: impl Convex, axis: Vec2) -> Vec2 {
+pub(crate) fn get_interval<const N: usize>(shape: impl Convex<N>, axis: Vec2) -> Vec2 {
     let vertices = shape.get_vertices();
 
-    vertices
-        .into_iter()
-        .fold(vertices[0].dot_into_vec(axis), |result, vertex| {
-            let projection = vertex.dot(axis);
-            Vec2::new(
-                f32::min(result.x, projection),
-                f32::max(result.y, projection),
-            )
-        })
+    let mut min = axis.dot(vertices[0]);
+    let mut max = min;
+    for vertex in vertices {
+        let projection = axis.dot(vertex);
+        if projection < min {
+            min = projection;
+        } else if projection > max {
+            max = projection;
+        }
+    }
+
+    Vec2::new(min, max)
 }
 
 #[cfg(test)]
@@ -340,15 +322,15 @@ mod tests {
 
     #[test]
     fn test_is_point_in_box2d() {
-        let point = Vec2::new(0.2, 3.8);
-        let mut box2d = Box2D::new(Vec2::new(0.0, 0.0), Vec2::new(4.0, 4.0), 0.0);
+        let point = Vec2::new(1.2, 4.8);
+        let mut box2d = Box2D::new(Vec2::new(1.0, 1.0), Vec2::new(5.0, 5.0), 0.0);
         assert!(is_point_in_box2d(point, box2d));
 
         box2d.rotation = PI / 4.0;
         assert!(!is_point_in_box2d(point, box2d));
 
         box2d.rotation = 0.0;
-        let point = Vec2::new(3.0, 5.0);
+        let point = Vec2::new(5.0, 8.0);
         assert!(!is_point_in_box2d(point, box2d));
     }
 
@@ -402,11 +384,52 @@ mod tests {
     }
 
     #[test]
-    fn line_intersects_box2d_when_before_rotation_and_doesnt_after_rotation() {
+    fn line_intersects_box2d_before_rotation_and_doesnt_after_rotation() {
         let line = Line2D::new(Vec2::new(-0.2, 6.0), Vec2::new(0.5, 9.0));
         let mut box2d = Box2D::new(Vec2::ZERO, Vec2::splat(8.0), 0.0);
         assert!(line_and_box2d(line, box2d));
         box2d.rotation = PI / 4.0;
         assert!(!line_and_box2d(line, box2d));
+    }
+
+    #[test]
+    fn circle_and_aabb_collide() {
+        let circle = Circle::new(Vec2::splat(60.0), 60.0);
+        let aabb = Aabb::new(Vec2::ZERO, Vec2::splat(50.0));
+        assert!(circle_and_aabb(circle, aabb));
+        let circle = Circle::new(Vec2::new(-5.0, -5.0), 20.0);
+        assert!(circle_and_aabb(circle, aabb));
+        let circle = Circle::new(Vec2::new(55.0, 0.0), 20.0);
+        assert!(circle_and_aabb(circle, aabb));
+        let circle = Circle::new(Vec2::ZERO, 10.0);
+        assert!(circle_and_aabb(circle, aabb));
+    }
+
+    #[test]
+    fn circle_and_aabb_dont_collide() {
+        let circle = Circle::new(Vec2::splat(100.0), 60.0);
+        let aabb = Aabb::new(Vec2::ZERO, Vec2::splat(50.0));
+        assert!(!circle_and_aabb(circle, aabb));
+    }
+
+    #[test]
+    fn circle_and_box2d_collide() {
+        let circle = Circle::new(Vec2::splat(60.0), 60.0);
+        let box2d = Box2D::new(Vec2::ZERO, Vec2::splat(50.0), 0.0);
+        assert!(circle_and_box2d(circle, box2d));
+        let circle = Circle::new(Vec2::new(-5.0, -5.0), 20.0);
+        assert!(circle_and_box2d(circle, box2d));
+        let circle = Circle::new(Vec2::new(55.0, 0.0), 10.0);
+        assert!(circle_and_box2d(circle, box2d));
+    }
+
+    #[test]
+    fn circle_and_box2d_dont_collide() {
+        let circle = Circle::new(Vec2::splat(100.0), 60.0);
+        let box2d = Box2D::new(Vec2::ZERO, Vec2::splat(50.0), 0.0);
+        assert!(!circle_and_box2d(circle, box2d));
+        let circle = Circle::new(Vec2::new(55.0, 0.0), 10.0);
+        let box2d = Box2D::new(Vec2::ZERO, Vec2::splat(50.0), PI / 4.0);
+        assert!(!circle_and_box2d(circle, box2d));
     }
 }
