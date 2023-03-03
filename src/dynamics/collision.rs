@@ -157,26 +157,21 @@ pub mod algo {
         let rotation_vec2 = Vec2::from_angle(b2.rotation);
         let b2_axes = [rotation_vec2.rotate(Vec2::X), rotation_vec2.rotate(Vec2::Y)];
 
-        let mut have_collided = false;
         let mut best_axis = b1_axes[0];
         let mut depth = f32::MAX;
+
         for axis in b1_axes.into_iter().chain(b2_axes.into_iter()) {
             let interval1 = collision::algo::get_interval(b1, axis);
             let interval2 = collision::algo::get_interval(b2, axis);
-            if !(interval1.x <= interval2.y && interval2.x <= interval1.y) {
-                continue;
+            if interval1.y < interval2.x || interval1.x > interval2.y {
+                return None;
             }
 
-            have_collided = true;
             let overlap = f32::min(interval1.y, interval2.y) - f32::max(interval1.x, interval2.x);
             if overlap < depth {
                 depth = overlap;
                 best_axis = axis;
             }
-        }
-
-        if !have_collided {
-            return None;
         }
 
         Some(CollisionManifold {

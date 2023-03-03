@@ -78,23 +78,23 @@ impl Demo {
         colliders.insert_with_parent(coll1, circle_handle, &mut bodies);
         colliders.insert_with_parent(coll2, cbox_handle, &mut bodies);
 
-        // Box2D vs Box2D, I couldn't get this working properly
+        // Box2D vs Box2D
 
-        // let position = Vec2::new(12.0, 20.0);
-        // let mut box1 = RigidBody::new(position, f32::to_radians(45.0));
-        // box1.set_mass(5.0);
-        // let box1_handle = bodies.insert(box1);
-        // let position = Vec2::new(25.0, 20.0);
-        // let mut box2 = RigidBody::new(position, f32::to_radians(45.0));
-        // box2.set_mass(10.0);
-        // let box2_handle = bodies.insert(box2);
-        // force_registry.insert(box1_handle, right_wind_handle);
-        // force_registry.insert(box2_handle, left_wind_handle);
-        // let shape = ColliderShape::Box2D(Box2D::new(Vec2::ZERO, Vec2::splat(BOX_SIZE), 0.0));
-        // let coll1 = Collider::new(shape);
-        // let coll2 = Collider::new(shape);
-        // colliders.insert_with_parent(coll1, box1_handle, &mut bodies);
-        // colliders.insert_with_parent(coll2, box2_handle, &mut bodies);
+        let position = Vec2::new(12.0, 20.0);
+        let mut box1 = RigidBody::new(position, f32::to_radians(45.0));
+        box1.set_mass(5.0);
+        let box1_handle = bodies.insert(box1);
+        let position = Vec2::new(25.0, 20.0);
+        let mut box2 = RigidBody::new(position, f32::to_radians(45.0));
+        box2.set_mass(10.0);
+        let box2_handle = bodies.insert(box2);
+        force_registry.insert(box1_handle, right_wind_handle);
+        force_registry.insert(box2_handle, left_wind_handle);
+        let shape = ColliderShape::Box2D(Box2D::new(Vec2::ZERO, Vec2::splat(BOX_SIZE), 0.0));
+        let coll1 = Collider::new(shape);
+        let coll2 = Collider::new(shape);
+        colliders.insert_with_parent(coll1, box1_handle, &mut bodies);
+        colliders.insert_with_parent(coll2, box2_handle, &mut bodies);
 
         Self {
             pipeline,
