@@ -1,10 +1,7 @@
 use glam::Vec2;
 
 use crate::{
-    collision::ColliderSet,
-    dynamics::collision::{
-        algo::find_collider_collider_collision_features, Collision, CollisionManifold,
-    },
+    collision::{ColliderSet, Collision, CollisionManifold},
     ForceGeneratorSet, ForceRegistry, RigidBody, RigidBodySet,
 };
 
@@ -65,7 +62,7 @@ impl PhysicsPipeline {
                 let coll1 = &colliders[coll_handle_1];
                 let coll2 = &colliders[coll_handle_2];
 
-                let Some(manifold) = find_collider_collider_collision_features(coll1, coll2) else {
+                let Some(manifold) = coll1.test_collision(coll2) else {
                     continue;
                 };
 

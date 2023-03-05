@@ -2,14 +2,14 @@ use glam::Vec2;
 
 use super::algo;
 use crate::{
-    primitive::{Box2D, Circle},
+    geometry::{Box2D, Circle},
     RigidBodyHandle,
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Collider {
     pub shape: ColliderShape,
-    pub(crate) parent: Option<RigidBodyHandle>,
+    pub parent: Option<RigidBodyHandle>,
 }
 
 impl Collider {
@@ -20,7 +20,7 @@ impl Collider {
         }
     }
 
-    pub fn test_collision(&self, other: &Self) -> bool {
+    pub fn test_collision(&self, other: &Self) -> Option<CollisionManifold> {
         self.shape.test_collision(other.shape)
     }
 
@@ -44,18 +44,19 @@ pub enum ColliderShape {
 }
 
 impl ColliderShape {
-    pub fn test_collision(self, other: Self) -> bool {
+    pub fn test_collision(self, other: Self) -> Option<CollisionManifold> {
         match (self, other) {
-            (ColliderShape::Circle(c1), ColliderShape::Circle(c2)) => {
-                algo::circle_and_circle(c1, c2)
-            }
+            (ColliderShape::Circle(c1), ColliderShape::Circle(c2)) => algo::circle_circle(c1, c2),
             (ColliderShape::Circle(circle), ColliderShape::Box2D(box2d)) => {
-                algo::circle_and_box2d(circle, box2d)
+                algo::box2d_circle(box2d, circle).map(|mut manifold| {
+                    manifold.normal = -manifold.normal;
+                    manifold
+                })
             }
             (ColliderShape::Box2D(box2d), ColliderShape::Circle(circle)) => {
-                algo::circle_and_box2d(circle, box2d)
+                algo::box2d_circle(box2d, circle)
             }
-            (ColliderShape::Box2D(b1), ColliderShape::Box2D(b2)) => algo::box2d_and_box2d(b1, b2),
+            (ColliderShape::Box2D(b1), ColliderShape::Box2D(b2)) => algo::box2d_box2d(b1, b2),
         }
     }
 
@@ -79,4 +80,20 @@ impl ColliderShape {
             ColliderShape::Box2D(b) => b.center(),
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Collision {
+    pub body_handle1: RigidBodyHandle,
+    pub body_handle2: RigidBodyHandle,
+    pub manifold: CollisionManifold,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CollisionManifold {
+    pub normal: Vec2,
+    // TODO: Actually use contant points and depth
+    pub contact_point_a: Vec2,
+    pub contact_point_b: Vec2,
+    pub depth: f32,
 }

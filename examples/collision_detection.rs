@@ -44,7 +44,7 @@ impl Demo {
         let shapes = [self.circle1, self.box1, self.circle2, self.box2];
         for (i, shape1) in shapes.into_iter().enumerate() {
             for shape2 in shapes.into_iter().skip(i + 1) {
-                if shape1.test_collision(shape2) {
+                if shape1.test_collision(shape2).is_some() {
                     self.colliding.extend([shape1, shape2]);
                 }
             }
